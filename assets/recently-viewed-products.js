@@ -1,35 +1,78 @@
+import { mediaQueryLarge, requestIdleCallback, startViewTransition } from '@theme/utilities';
+import PaginatedList from '@theme/paginated-list';
+
 /**
- * Updates the recently viewed products in localStorage.
+ * A custom element that renders a pagniated results list
  */
-export class RecentlyViewed {
-  /** @static @constant {string} The key used to store the viewed products in session storage */
-  static #STORAGE_KEY = 'viewedProducts';
-  /** @static @constant {number} The maximum number of products to store */
-  static #MAX_PRODUCTS = 4;
+export default class ResultsList extends PaginatedList {
+  connectedCallback() {
+    super.connectedCallback();
 
-  /**
-   * Adds a product to the recently viewed products list.
-   * @param {string} productId - The ID of the product to add.
-   */
-  static addProduct(productId) {
-    let viewedProducts = this.getProducts();
-
-    viewedProducts = viewedProducts.filter((/** @type {string} */ id) => id !== productId);
-    viewedProducts.unshift(productId);
-    viewedProducts = viewedProducts.slice(0, this.#MAX_PRODUCTS);
-
-    localStorage.setItem(this.#STORAGE_KEY, JSON.stringify(viewedProducts));
+    mediaQueryLarge.addEventListener('change', this.#handleMediaQueryChange);
+    this.setAttribute('initialized', '');
   }
 
-  static clearProducts() {
-    localStorage.removeItem(this.#STORAGE_KEY);
+  disconnectedCallback() {
+    mediaQueryLarge.removeEventListener('change', this.#handleMediaQueryChange);
   }
 
   /**
-   * Retrieves the list of recently viewed products from session storage.
-   * @returns {string[]} The list of viewed products.
+   * Updates the layout.
+   *
+   * @param {Event} event
    */
-  static getProducts() {
-    return JSON.parse(localStorage.getItem(this.#STORAGE_KEY) || '[]');
+  updateLayout({ target }) {
+    if (!(target instanceof HTMLInputElement)) return;
+
+    this.#animateLayoutChange(target.value);
   }
+
+  /**
+   * Sets the layout.
+   *
+   * @param {string} value
+   */
+  #animateLayoutChange = async (value) => {
+    const { grid } = this.refs;
+
+    if (!grid) return;
+
+    await startViewTransition(() => this.#setLayout(value), ['product-grid']);
+
+    requestIdleCallback(() => {
+      const viewport = mediaQueryLarge.matches ? 'desktop' : 'mobile';
+      sessionStorage.setItem(`product-grid-view-${viewport}`, value);
+    });
+  };
+
+  /**
+   * Animates the layout change.
+   *
+   * @param {string} value
+   */
+  #setLayout(value) {
+    const { grid } = this.refs;
+    if (!grid) return;
+    grid.setAttribute('product-grid-view', value);
+  }
+
+  /**
+   * Handles the media query change event.
+   *
+   * @param {MediaQueryListEvent} event
+   */
+  #handleMediaQueryChange = (event) => {
+    const targetElement = event.matches
+      ? this.querySelector('[data-grid-layout="desktop-default-option"]')
+      : this.querySelector('[data-grid-layout="mobile-option"]');
+
+    if (!(targetElement instanceof HTMLInputElement)) return;
+
+    targetElement.checked = true;
+    this.#setLayout('default');
+  };
+}
+
+if (!customElements.get('results-list')) {
+  customElements.define('results-list', ResultsList);
 }

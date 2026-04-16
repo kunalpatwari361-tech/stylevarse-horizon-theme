@@ -8,7 +8,7 @@ import { morphSection, sectionRenderer } from '@theme/section-renderer';
  *
  * @typedef {object} QuickOrderListComponentRefs
  * @property {HTMLTableRowElement[]} variantRows - The variant row elements
- * @property {HTMLElement} confirmationPanel - The remove all confirmation dialog
+ * @property {HTMLElement} confirmationPaavnel - The remove all confirmation dialog
  * @property {HTMLElement} totalInfo - The total info section element
  * @property {HTMLElement} errorContainer - The error message container
  * @property {HTMLElement} errorText - The error message text element
